@@ -2,15 +2,16 @@ import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Geist, Fira_Code } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _firaCode = Fira_Code({ subsets: ["latin"] });
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
+const firaCode = Fira_Code({ subsets: ["latin"], variable: "--font-fira-code" })
 
 export const metadata: Metadata = {
-  title: 'StudyVault - Study Materials Platform',
-  description: 'Share and access study materials, lecture notes, past papers, and more',
-  generator: 'v0.app',
+  title: 'DocVault - Secure Document Storage',
+  description: 'Store, manage, and access your important PDFs and documents with enterprise-grade security.',
+  generator: 'Next.js',
   icons: {
     icon: [
       {
@@ -41,11 +42,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="font-sans antialiased">
-        {children}
-        <Analytics />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`dark ${geist.variable} ${firaCode.variable}`}>
+        <body className="font-sans antialiased bg-zinc-950 text-white">
+          {children}
+          <Analytics />
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

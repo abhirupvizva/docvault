@@ -1,161 +1,91 @@
 'use client'
 
-import React from "react"
-
-import { FileText, Download, Eye, MoreVertical, Trash2, EyeOff, Check } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import type { Document } from '@/lib/types'
-import { formatFileSize, formatDate } from '@/lib/data'
-import { useDocuments } from '@/lib/document-context'
+import { useState } from 'react'
+import { Download, FileText, Eye } from 'lucide-react'
+import { PDFViewerModal } from './pdf-viewer-modal'
 
 interface DocumentCardProps {
-  document: Document
-  onPreview: (doc: Document) => void
+  id: string
+  title: string
+  description: string
+  category: string
+  fileName: string
+  fileSize: number
+  downloadEnabled: boolean
 }
 
-export function DocumentCard({ document, onPreview }: DocumentCardProps) {
-  const { isAdmin, toggleStatus, deleteDocument } = useDocuments()
-  const isDisabled = document.status === 'disabled'
-  const isDraft = document.status === 'draft' // Declare isDraft variable
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${Number.parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`
+}
 
-  const handleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    // In production, this would trigger an actual download
-    console.log('[v0] Download triggered for:', document.fileName)
-  }
-
-  const handlePreview = () => {
-    onPreview(document)
-  }
+export function DocumentCard({
+  id,
+  title,
+  description,
+  category,
+  fileName,
+  fileSize,
+  downloadEnabled,
+}: DocumentCardProps) {
+  const [showViewer, setShowViewer] = useState(false)
 
   return (
-    <Card
-      className="group cursor-pointer transition-shadow duration-200 hover:shadow-lg border-border/50 hover:border-border"
-      onClick={handlePreview}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          handlePreview()
-        }
-      }}
-      aria-label={`View ${document.title}`}
-    >
-      <CardContent className="p-4">
+    <>
+      <div className="group bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-all">
         <div className="flex items-start gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-secondary">
-            <FileText className="size-6 text-muted-foreground" />
+          <div className="p-3 bg-zinc-800 rounded-lg text-emerald-500 group-hover:bg-emerald-500/10 transition-colors">
+            <FileText className="w-6 h-6" />
           </div>
-          
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <h3 className="truncate font-medium text-foreground text-pretty">
-                  {document.title}
-                </h3>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  {document.description}
-                </p>
-              </div>
-              
-              {isAdmin && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label="Document options"
-                    >
-                      <MoreVertical className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => toggleStatus(document.id)}>
-                      {isDisabled ? (
-                        <>
-                          <Check className="mr-2 size-4" />
-                          Enable
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="mr-2 size-4" />
-                          Disable
-                        </>
-                      )}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => deleteDocument(document.id)}
-                    >
-                      <Trash2 className="mr-2 size-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                {document.category}
-              </Badge>
-              {isAdmin && (
-                <Badge
-                  variant="outline"
-                  className={
-                    isDisabled
-                      ? 'border-doc-draft/50 bg-doc-draft/10 text-doc-draft'
-                      : 'border-doc-published/50 bg-doc-published/10 text-doc-published'
-                  }
-                >
-                  {isDisabled ? 'Disabled' : 'Enabled'}
-                </Badge>
-              )}
-            </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-lg mb-1 truncate">{title}</h3>
+            {description && (
+              <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{description}</p>
+            )}
 
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
-                <span>{formatFileSize(document.sizeCompressed)}</span>
-                <span>{formatDate(document.createdAt)}</span>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handlePreview()
-                  }}
-                  aria-label={`Preview ${document.title}`}
-                >
-                  <Eye className="size-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={handleDownload}
-                  aria-label={`Download ${document.title}`}
-                >
-                  <Download className="size-4" />
-                </Button>
-              </div>
+            <div className="flex items-center gap-3 text-xs text-zinc-500">
+              <span className="px-2 py-1 bg-zinc-800 rounded">{category}</span>
+              <span>{formatFileSize(fileSize)}</span>
             </div>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* View button */}
+            <button
+              onClick={() => setShowViewer(true)}
+              className="p-3 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors"
+              title="View document"
+            >
+              <Eye className="w-5 h-5" />
+            </button>
+
+            {/* Download button - only show if enabled */}
+            {downloadEnabled && (
+              <a
+                href={`/api/documents/${id}`}
+                className="p-3 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors"
+                title={`Download ${fileName}`}
+              >
+                <Download className="w-5 h-5" />
+              </a>
+            )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* PDF Viewer Modal */}
+      {showViewer && (
+        <PDFViewerModal
+          documentId={id}
+          title={title}
+          downloadEnabled={downloadEnabled}
+          onClose={() => setShowViewer(false)}
+        />
+      )}
+    </>
   )
 }
