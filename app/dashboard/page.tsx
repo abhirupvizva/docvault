@@ -97,14 +97,14 @@ export default async function UserDashboard() {
           <DashboardCard
             icon={<Star className="w-6 h-6" />}
             title="Favorites"
-            value="—"
-            label="Coming soon"
+            value={(user?.favorites?.length || 0).toString()}
+            label="Selected documents"
           />
           <DashboardCard
             icon={<Clock className="w-6 h-6" />}
             title="Recent"
-            value="—"
-            label="Coming soon"
+            value={(user?.recentDocs?.length || 0).toString()}
+            label="Recently viewed"
           />
         </div>
 

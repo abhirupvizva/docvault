@@ -14,6 +14,11 @@ export interface User {
   role: UserRole
   createdAt: Date
   updatedAt: Date
+  favorites?: ObjectId[]
+  recentDocs?: {
+    documentId: ObjectId
+    viewedAt: Date
+  }[]
 }
 
 const COLLECTION = 'users'
@@ -141,4 +146,76 @@ export async function updateUserRole(clerkId: string, role: UserRole): Promise<U
     { returnDocument: 'after' }
   )
   return result
+}
+
+// Toggle favorite status for a document
+export async function toggleFavorite(clerkId: string, documentId: string): Promise<User | null> {
+  const db = await getDb()
+  const docId = new ObjectId(documentId)
+
+  const user = await db.collection<User>(COLLECTION).findOne({ clerkId })
+  if (!user) return null
+
+  const isFavorite = user.favorites?.some(id => id.equals(docId))
+
+  let update
+  if (isFavorite) {
+    update = { $pull: { favorites: docId } as any }
+  } else {
+    update = { $addToSet: { favorites: docId } as any }
+  }
+
+  const result = await db.collection<User>(COLLECTION).findOneAndUpdate(
+    { clerkId },
+    {
+      ...update,
+      $set: { updatedAt: new Date() }
+    },
+    { returnDocument: 'after' }
+  )
+
+  return result
+}
+
+// Add document to recent list
+export async function addToRecent(clerkId: string, documentId: string): Promise<User | null> {
+  const db = await getDb()
+  const docId = new ObjectId(documentId)
+
+  // Remove existing entry for this doc if present, then push to front (cap at 10)
+  await db.collection<User>(COLLECTION).findOneAndUpdate(
+    { clerkId },
+    {
+      $pull: { recentDocs: { documentId: docId } } as any
+    }
+  )
+
+  const finalResult = await db.collection<User>(COLLECTION).findOneAndUpdate(
+    { clerkId },
+    {
+      $push: {
+        recentDocs: {
+          $each: [{ documentId: docId, viewedAt: new Date() }],
+          $position: 0,
+          $slice: 10
+        }
+      } as any,
+      $set: { updatedAt: new Date() }
+    },
+    { returnDocument: 'after' }
+  )
+
+  return finalResult
+}
+
+// Get user favorites
+export async function getUserFavorites(clerkId: string): Promise<ObjectId[]> {
+  const user = await getUserByClerkId(clerkId)
+  return user?.favorites || []
+}
+
+// Get user recent docs
+export async function getUserRecent(clerkId: string): Promise<NonNullable<User['recentDocs']>> {
+  const user = await getUserByClerkId(clerkId)
+  return user?.recentDocs || []
 }

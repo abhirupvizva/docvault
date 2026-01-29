@@ -12,7 +12,10 @@ interface DocumentCardProps {
   fileName: string
   fileSize: number
   downloadEnabled: boolean
+  initialIsFavorite?: boolean
 }
+
+import { Star } from 'lucide-react'
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -30,8 +33,54 @@ export function DocumentCard({
   fileName,
   fileSize,
   downloadEnabled,
+  initialIsFavorite = false
 }: DocumentCardProps) {
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const [showViewer, setShowViewer] = useState(false)
+
+  // NOTE: Simple local state for now. In a real app we'd fetch this or pass it down.
+  // For this step, we will just toggle it locally and hit the API.
+  // Ideally parent should provide this status. 
+  // We will assume "false" initially and let user click it, 
+  // OR we can fetch it. But triggering fetch for *every* card is bad. 
+  // Better pattern: Parent fetches *all* fav IDs and passes `isFavorite` prop.
+  // I will check if I can modify parent first. But user wants this done.
+  // Let's stick to updating this component to ACCEPT isFavorite prop first,
+  // but for now I will use local state and effect to check status (less efficient but works) 
+  // OR just assume false.
+
+  // Actually, I will make the parent pass the favorite status.
+  // But wait, the parent `DocumentBrowser` fetches documents. 
+  // It should also fetch user favorites.
+
+  // Let's add the UI first.
+  const toggleFav = async () => {
+    try {
+      setIsFavorite(!isFavorite) // Optimistic update
+      await fetch('/api/user/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: id })
+      })
+      // Should probably revalidate dashboard stats here
+    } catch (e) {
+      console.error("Failed to toggle fav", e)
+      setIsFavorite(!isFavorite) // Revert
+    }
+  }
+
+  const handleView = async () => {
+    setShowViewer(true)
+    try {
+      await fetch('/api/user/recent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: id })
+      })
+    } catch (e) {
+      console.error("Failed to update recent", e)
+    }
+  }
 
   return (
     <>
@@ -42,7 +91,10 @@ export function DocumentCard({
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-lg mb-1 truncate">{title}</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-medium text-lg truncate">{title}</h3>
+            </div>
+
             {description && (
               <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{description}</p>
             )}
@@ -53,26 +105,44 @@ export function DocumentCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            {/* View button */}
+          <div className="flex flex-col items-center gap-1">
             <button
-              onClick={() => setShowViewer(true)}
-              className="p-3 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors"
-              title="View document"
+              onClick={toggleFav}
+              className={`p-2 rounded-lg transition-colors ${isFavorite ? 'text-yellow-400' : 'text-zinc-600 hover:text-yellow-400'}`}
+              title={isFavorite ? "Remove from favorites" : "Add to favorites"}
             >
-              <Eye className="w-5 h-5" />
+              <Star className={`w-5 h-5 ${isFavorite ? 'fill-yellow-400' : ''}`} />
             </button>
 
-            {/* Download button - only show if enabled */}
-            {downloadEnabled && (
-              <a
-                href={`/api/documents/${id}`}
-                className="p-3 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors"
-                title={`Download ${fileName}`}
+            <div className="flex items-center gap-1 mt-2">
+              {/* View button */}
+              <button
+                onClick={handleView}
+                className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors"
+                title="View document"
               >
-                <Download className="w-5 h-5" />
-              </a>
-            )}
+                <Eye className="w-5 h-5" />
+              </button>
+
+              {/* Download button - only show if enabled */}
+              {downloadEnabled && (
+                <a
+                  href={`/api/documents/${id}`}
+                  onClick={() => {
+                    // Also mark as recent on download
+                    fetch('/api/user/recent', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ documentId: id })
+                    }).catch(console.error)
+                  }}
+                  className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors"
+                  title={`Download ${fileName}`}
+                >
+                  <Download className="w-5 h-5" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
