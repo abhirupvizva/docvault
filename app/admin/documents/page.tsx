@@ -317,7 +317,20 @@ function UploadModal({
         body: formData,
       })
 
-      const data = await res.json()
+      let data
+      try {
+        data = await res.json()
+      } catch (jsonError) {
+        // If JSON parse fails, try to get text (likely an HTML error or plain text)
+        const text = await res.clone().text().catch(() => 'Unknown error')
+        console.error('Upload response parse error:', jsonError)
+        console.error('Raw response:', text)
+        // Check for common HTML error pages or text
+        if (text.includes('Request Entity Too Large')) {
+          throw new Error('File is too large for the server. Please try a smaller file.')
+        }
+        throw new Error(`Upload failed: ${res.statusText} (${res.status})`)
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Upload failed')
