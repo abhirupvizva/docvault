@@ -30,16 +30,11 @@ interface Document {
   createdAt: string
 }
 
-const CATEGORIES = [
-  'Lecture Notes',
-  'Past Papers',
-  'Textbooks',
-  'Assignments',
-  'Lab Reports',
-  'Study Guides',
-  'Reference Materials',
-  'Other',
-]
+interface Category {
+  _id: string
+  name: string
+  slug: string
+}
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -52,18 +47,27 @@ function formatFileSize(bytes: number): string {
 export default function AdminDocumentsPage() {
   const { isLoaded } = useAuth()
   const [documents, setDocuments] = useState<Document[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showUploadModal, setShowUploadModal] = useState(false)
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/documents')
-      const data = await res.json()
-      if (data.documents) {
-        setDocuments(data.documents)
+      const [docsRes, catsRes] = await Promise.all([
+        fetch('/api/documents'),
+        fetch('/api/categories')
+      ])
+
+      const docsData = await docsRes.json()
+      if (docsData.documents) {
+        setDocuments(docsData.documents)
+      }
+
+      if (catsRes.ok) {
+        setCategories(await catsRes.json())
       }
     } catch (error) {
-      console.error('Error fetching documents:', error)
+      console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
     }
@@ -71,15 +75,15 @@ export default function AdminDocumentsPage() {
 
   useEffect(() => {
     if (isLoaded) {
-      fetchDocuments()
+      fetchData()
     }
-  }, [isLoaded, fetchDocuments])
+  }, [isLoaded, fetchData])
 
   const handleToggleStatus = async (id: string) => {
     try {
       const res = await fetch(`/api/documents/${id}/toggle`, { method: 'PATCH' })
       if (res.ok) {
-        fetchDocuments()
+        fetchData()
       }
     } catch (error) {
       console.error('Error toggling status:', error)
@@ -90,7 +94,7 @@ export default function AdminDocumentsPage() {
     try {
       const res = await fetch(`/api/documents/${id}/toggle-download`, { method: 'PATCH' })
       if (res.ok) {
-        fetchDocuments()
+        fetchData()
       }
     } catch (error) {
       console.error('Error toggling download:', error)
@@ -103,7 +107,7 @@ export default function AdminDocumentsPage() {
     try {
       const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        fetchDocuments()
+        fetchData()
       }
     } catch (error) {
       console.error('Error deleting document:', error)
@@ -259,10 +263,11 @@ export default function AdminDocumentsPage() {
       {/* Upload Modal */}
       {showUploadModal && (
         <UploadModal
+          categories={categories}
           onClose={() => setShowUploadModal(false)}
           onSuccess={() => {
             setShowUploadModal(false)
-            fetchDocuments()
+            fetchData()
           }}
         />
       )}
@@ -270,13 +275,28 @@ export default function AdminDocumentsPage() {
   )
 }
 
-function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function UploadModal({
+  categories,
+  onClose,
+  onSuccess
+}: {
+  categories: Category[]
+  onClose: () => void;
+  onSuccess: () => void
+}) {
   const [uploading, setUploading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('Other')
+  const [category, setCategory] = useState('')
   const [error, setError] = useState('')
+
+  // Set default category if available
+  useEffect(() => {
+    if (categories.length > 0 && !category) {
+      setCategory(categories[0].name)
+    }
+  }, [categories, category])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -383,8 +403,9 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors"
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+              <option value="" disabled>Select a category</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat.name}>{cat.name}</option>
               ))}
             </select>
           </div>

@@ -131,6 +131,7 @@ export default async function AdminDashboard() {
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ActionButton label="Manage Documents" href="/admin/documents" />
+            <ActionButton label="Manage Categories" href="/admin/categories" />
             <ActionButton label="Manage Users" href="/admin/users" />
             <ActionButton label="View Analytics" href="/admin/analytics" />
           </div>
