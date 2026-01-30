@@ -157,7 +157,7 @@ export default function LandingPage() {
             <span className="font-semibold">DocVault</span>
           </div>
           <p className="text-sm text-zinc-500">
-            © {new Date().getFullYear()} DocVault. All rights reserved.
+            © {new Date().getFullYear()} DocVault. Built by Team Prateek.
           </p>
         </div>
       </footer>
