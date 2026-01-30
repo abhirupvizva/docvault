@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, FileText, Eye } from 'lucide-react'
+import { Download, FileText, Eye, Loader2 } from 'lucide-react'
 import { PDFViewerModal } from './pdf-viewer-modal'
 
 interface DocumentCardProps {
@@ -37,6 +37,7 @@ export function DocumentCard({
 }: DocumentCardProps) {
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const [showViewer, setShowViewer] = useState(false)
+  const [isOpening, setIsOpening] = useState(false)
 
   // NOTE: Simple local state for now. In a real app we'd fetch this or pass it down.
   // For this step, we will just toggle it locally and hit the API.
@@ -70,6 +71,7 @@ export function DocumentCard({
   }
 
   const handleView = async () => {
+    setIsOpening(true)
     setShowViewer(true)
     try {
       await fetch('/api/user/recent', {
@@ -79,6 +81,8 @@ export function DocumentCard({
       })
     } catch (e) {
       console.error("Failed to update recent", e)
+    } finally {
+      setIsOpening(false)
     }
   }
 
@@ -118,10 +122,11 @@ export function DocumentCard({
               {/* View button */}
               <button
                 onClick={handleView}
-                className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors"
+                disabled={isOpening}
+                className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
                 title="View document"
               >
-                <Eye className="w-5 h-5" />
+                {isOpening ? <Loader2 className="w-5 h-5 animate-spin" /> : <Eye className="w-5 h-5" />}
               </button>
 
               {/* Download button - only show if enabled */}

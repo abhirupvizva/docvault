@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Loader2, Filter } from 'lucide-react'
+import { FileText, Loader2, Filter, X } from 'lucide-react'
 import { DocumentCard } from './document-card'
 
 interface Document {
@@ -14,19 +14,28 @@ interface Document {
   downloadEnabled: boolean
 }
 
+interface Category {
+  _id: string
+  name: string
+  slug: string
+}
+
 export function DocumentBrowser() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [favorites, setFavorites] = useState<string[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [docsRes, favsRes] = await Promise.all([
+        const [docsRes, favsRes, catsRes] = await Promise.all([
           fetch('/api/documents'),
-          fetch('/api/user/favorites') // We need to create/verify this endpoint
+          fetch('/api/user/favorites'),
+          fetch('/api/categories')
         ])
 
         const docsData = await docsRes.json()
@@ -37,6 +46,11 @@ export function DocumentBrowser() {
         const favsData = await favsRes.json()
         if (favsData.favorites) {
           setFavorites(favsData.favorites)
+        }
+
+        const catsData = await catsRes.json()
+        if (Array.isArray(catsData)) {
+          setCategories(catsData)
         }
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -49,10 +63,12 @@ export function DocumentBrowser() {
     fetchData()
   }, [])
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.fileName.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredDocuments = documents.filter(doc => {
+    const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = selectedCategory ? doc.category === selectedCategory : true
+    return matchesSearch && matchesCategory
+  })
 
   if (loading) {
     return (
@@ -85,6 +101,33 @@ export function DocumentBrowser() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
+
+      {/* Category Filters */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === null
+              ? 'bg-emerald-600 text-white'
+              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+              }`}
+          >
+            All
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat._id}
+              onClick={() => setSelectedCategory(cat.name)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === cat.name
+                ? 'bg-emerald-600 text-white'
+                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filteredDocuments.length === 0 ? (
         <div className="text-center py-12 bg-zinc-900/50 border border-zinc-800 rounded-xl">

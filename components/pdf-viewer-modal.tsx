@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Download, Maximize2, Minimize2 } from 'lucide-react'
+import { X, Download, Maximize2, Minimize2, Loader2 } from 'lucide-react'
 
 interface PDFViewerModalProps {
   documentId: string
@@ -17,6 +17,7 @@ export function PDFViewerModal({
   onClose
 }: PDFViewerModalProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -27,16 +28,6 @@ export function PDFViewerModal({
           <h2 className="text-lg font-semibold truncate pr-4">{title}</h2>
 
           <div className="flex items-center gap-2">
-            {downloadEnabled && (
-              <a
-                href={`/api/documents/${documentId}`}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </a>
-            )}
-
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
@@ -55,11 +46,20 @@ export function PDFViewerModal({
         </div>
 
         {/* PDF Viewer */}
-        <div className="flex-1 bg-zinc-950">
+        <div className="relative flex-1 bg-zinc-950">
+          {isLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-900">
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                <p className="text-sm text-zinc-400">Loading document...</p>
+              </div>
+            </div>
+          )}
           <iframe
-            src={`/api/documents/${documentId}/view`}
+            src={`/api/documents/${documentId}/view#toolbar=0&navpanes=0`}
             className="w-full h-full"
             title={title}
+            onLoad={() => setIsLoading(false)}
           />
         </div>
       </div>
