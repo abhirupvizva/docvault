@@ -38,9 +38,11 @@ function loadYouTubeIframeApi(): Promise<void> {
 
 export function YouTubePlayer({
   videoId,
+  playlistId,
   title
 }: {
-  videoId: string
+  videoId?: string
+  playlistId?: string
   title: string
 }) {
   const rawId = useId()
@@ -53,30 +55,41 @@ export function YouTubePlayer({
 
     async function init() {
       try {
+        setReady(false)
         await loadYouTubeIframeApi()
         if (disposed) return
 
-        if (!playerRef.current) {
-          playerRef.current = new window.YT.Player(containerId, {
-            videoId,
-            width: '100%',
-            height: '100%',
-            playerVars: {
-              rel: 0,
-              modestbranding: 1
-            },
-            events: {
-              onReady: () => {
-                if (!disposed) setReady(true)
-              }
-            }
-          })
+        const hasVideo = Boolean(videoId?.trim())
+        const hasPlaylist = Boolean(playlistId?.trim())
+        if (hasVideo === hasPlaylist) {
+          if (!disposed) setReady(true)
           return
         }
 
-        if (playerRef.current?.loadVideoById) {
-          playerRef.current.loadVideoById(videoId)
+        try {
+          playerRef.current?.destroy?.()
+        } finally {
+          playerRef.current = null
         }
+
+        const basePlayerVars = {
+          rel: 0,
+          modestbranding: 1
+        }
+
+        playerRef.current = new window.YT.Player(containerId, {
+          videoId: hasVideo ? videoId!.trim() : '',
+          width: '100%',
+          height: '100%',
+          playerVars: hasPlaylist
+            ? { ...basePlayerVars, listType: 'playlist', list: playlistId!.trim() }
+            : basePlayerVars,
+          events: {
+            onReady: () => {
+              if (!disposed) setReady(true)
+            }
+          }
+        })
       } catch {
         if (!disposed) setReady(true)
       }
@@ -87,7 +100,7 @@ export function YouTubePlayer({
     return () => {
       disposed = true
     }
-  }, [containerId, videoId])
+  }, [containerId, videoId, playlistId])
 
   useEffect(() => {
     return () => {

@@ -134,6 +134,8 @@ export default async function AdminDashboard() {
             <ActionButton label="Manage Categories" href="/admin/categories" />
             <ActionButton label="Manage Videos" href="/admin/videos" />
             <ActionButton label="Video Categories" href="/admin/video-categories" />
+            <ActionButton label="Manage Playlists" href="/admin/playlists" />
+            <ActionButton label="Playlist Categories" href="/admin/playlist-categories" />
             <ActionButton label="Manage Users" href="/admin/users" />
             <ActionButton label="View Analytics" href="/admin/analytics" />
           </div>
