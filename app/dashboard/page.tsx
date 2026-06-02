@@ -6,6 +6,7 @@ import { getDocumentCount } from '@/lib/models/document.model'
 import { FileText, Download, Star, Clock, Home } from 'lucide-react'
 import Link from 'next/link'
 import { DocumentBrowser } from '@/components/document-browser'
+import { VideosPreview } from '@/components/videos-preview'
 
 export default async function UserDashboard() {
   const { userId } = await auth()
@@ -113,6 +114,8 @@ export default async function UserDashboard() {
           <h2 className="text-xl font-semibold mb-4">Available Documents</h2>
           <DocumentBrowser />
         </section>
+
+        <VideosPreview />
 
         {user?.role === 'admin' && (
           <section className="mt-8">

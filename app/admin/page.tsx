@@ -132,6 +132,8 @@ export default async function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ActionButton label="Manage Documents" href="/admin/documents" />
             <ActionButton label="Manage Categories" href="/admin/categories" />
+            <ActionButton label="Manage Videos" href="/admin/videos" />
+            <ActionButton label="Video Categories" href="/admin/video-categories" />
             <ActionButton label="Manage Users" href="/admin/users" />
             <ActionButton label="View Analytics" href="/admin/analytics" />
           </div>
